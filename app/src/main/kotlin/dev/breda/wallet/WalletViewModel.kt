@@ -25,7 +25,7 @@ class WalletViewModel(app:Application) : AndroidViewModel(app) {
   busyState.value=true;messageState.value="Processando transferência fictícia…"
   viewModelScope.launch {
    try {
-   kotlinx.coroutines.delay(450) // simulated gateway latency for the confirmation flow
+   kotlinx.coroutines.delay(2200) // simulated gateway latency for the confirmation flow
    messageState.value = when(repository.transfer(Transfer(UUID.randomUUID().toString(), recipient.trim(), Money(cents)))) {
     TransferResult.Success -> "Transferência simulada concluída."
     TransferResult.InsufficientFunds -> "Saldo insuficiente."
