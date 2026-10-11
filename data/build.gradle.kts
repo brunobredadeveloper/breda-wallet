@@ -3,7 +3,7 @@ kotlin { jvmToolchain(17) }
 dependencies {
  implementation(project(":domain"))
  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
- testImplementation(kotlin("test"))
+ testImplementation(kotlin("test-junit5")); testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.11.4")
  testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")
 }
 tasks.test { useJUnitPlatform() }
