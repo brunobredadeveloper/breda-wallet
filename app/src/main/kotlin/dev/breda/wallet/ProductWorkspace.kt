@@ -26,7 +26,7 @@ private fun money(cents:Long)=NumberFormat.getCurrencyInstance(Locale.forLanguag
  Workspace(account,listOf("Início","Extrato","Planejar","Conta")) {route,go->
   when(route) {
    "home"->Page("Olá, ${account.name.substringBefore(' ')}") {
-    Hero("CARTEIRA / BRL",money(wallet.balance.cents),"Saldo de demonstração · transferências em memória")
+    WalletCard(wallet.balance.cents)
     Row(horizontalArrangement=Arrangement.spacedBy(12.dp)){Metric("Transferido",money(wallet.entries.sumOf {it.debit.cents}),Modifier.weight(1f));Metric("Operações",wallet.entries.size.toString(),Modifier.weight(1f))}
     ActionTile("Enviar dinheiro","Destinatário → valor → confirmação",Icons.Default.Send){confirmed=false;go("operation")}
     ActionTile("Seu planejamento","Defina um objetivo e acompanhe o saldo",Icons.Default.Savings){go("tools")}
@@ -38,10 +38,22 @@ private fun money(cents:Long)=NumberFormat.getCurrencyInstance(Locale.forLanguag
     if(!confirmed){OutlinedTextField(recipient,{recipient=it},label={Text("Destinatário fictício")},modifier=Modifier.fillMaxWidth());OutlinedTextField(amount,{amount=it},label={Text("Valor em reais")},keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Decimal),modifier=Modifier.fillMaxWidth());Text("Disponível: ${money(wallet.balance.cents)}");Button(onClick={confirmed=true},enabled=recipient.isNotBlank()&&amount.isNotBlank(),modifier=Modifier.fillMaxWidth()){Text("Revisar transferência")}}
     else {Hero("REVISÃO",recipient,"Valor informado: R$ $amount");Text("Operação fictícia. Confira o valor e destinatário antes de confirmar.");Button(onClick={vm.transfer(recipient,amount);go("result")},modifier=Modifier.fillMaxWidth()){Text("Confirmar envio")};OutlinedButton(onClick={confirmed=false}){Text("Editar dados")}}
    }
-   "result"->Page("Resultado da transferência",{go("home")}) {StatusPanel(if(busy)"loading" else if(message.contains("concluída"))"success" else "error",if(busy)"Processando" else if(message.contains("concluída"))"Transferência concluída" else "Confira os dados",message);Button(onClick={go(if(message.contains("concluída"))"activity" else "operation")},modifier=Modifier.fillMaxWidth()){Text(if(message.contains("concluída"))"Ver no extrato" else "Corrigir e tentar novamente")}}
+   "result"->Page("Resultado da transferência",{go("home")}) {StatusPanel(if(busy)"loading" else if(message.contains("concluída"))"success" else "error",if(busy)"Processando" else if(message.contains("concluída"))"Transferência concluída" else "Confira os dados",message);Button(enabled=!busy,onClick={go(if(message.contains("concluída"))"activity" else "operation")},modifier=Modifier.fillMaxWidth()){Text(if(message.contains("concluída"))"Ver no extrato" else "Corrigir e tentar novamente")}}
    "activity"->Page("Extrato") {OutlinedTextField(query,{query=it},label={Text("Buscar destinatário")},modifier=Modifier.fillMaxWidth());val entries=wallet.entries.filter {it.description.contains(query,true)};Text("${entries.size} movimentações");entries.forEach {entry->ActionTile(entry.description,"− ${money(entry.debit.cents)}",Icons.Default.ReceiptLong){selected=entry.id;go("details")}};if(entries.isEmpty())StatusPanel("loading","Nenhuma movimentação","Envie uma transferência ou ajuste a busca.")}
    "details"->Page("Comprovante",{go("activity")}) {val entry=wallet.entries.find {it.id==selected};if(entry!=null){StatusPanel("success",money(entry.debit.cents),entry.description);Text("Identificador: ${entry.id}");Text("Comprovante fictício · Breda Wallet")}else {Text("Contrato da carteira",style=MaterialTheme.typography.titleLarge);Text("Valores em centavos, mutex para serializar transferências e request ID para impedir débitos repetidos. A biblioteca de domínio não conhece Firebase nem Compose.")}}
-   "tools"->Page("Planejamento") {var goal by rememberSaveable {mutableStateOf("1000,00")};Hero("OBJETIVO","Sua próxima conquista","Planeje usando o saldo da demonstração.");OutlinedTextField(goal,{goal=it},label={Text("Meta em reais")},modifier=Modifier.fillMaxWidth());val cents=runCatching {BigDecimal(goal.replace(',','.')).movePointRight(2).longValueExact()}.getOrDefault(0);if(cents>0){val ratio=(wallet.balance.cents.toFloat()/cents).coerceIn(0f,1f);LinearProgressIndicator(progress={ratio},modifier=Modifier.fillMaxWidth());Text("${(ratio*100).toInt()}% do objetivo · ${money(cents)}")}else Text("Informe uma meta positiva.");ActionTile("Entenda a arquitetura","Dinheiro em centavos, mutex e idempotência",Icons.Default.Code){go("details");selected=""};Text("Saldo e extrato reiniciam ao encerrar o processo. A conta Firebase persiste independentemente dos dados fictícios.")}
+   "tools"->Page("Planejamento") {var goal by rememberSaveable {mutableStateOf("1000,00")};Hero("OBJETIVO","Sua próxima conquista","Planeje usando o saldo da demonstração.");OutlinedTextField(goal,{goal=it},label={Text("Meta em reais")},modifier=Modifier.fillMaxWidth());val cents=runCatching {BigDecimal(goal.replace(',','.')).movePointRight(2).longValueExact()}.getOrDefault(0);if(cents>0){val ratio=(wallet.balance.cents.toFloat()/cents).coerceIn(0f,1f);LinearProgressIndicator(progress={ratio},modifier=Modifier.fillMaxWidth());Text("${(ratio*100).toInt()}% do objetivo · ${money(cents)}")}else Text("Informe uma meta positiva.");ActionTile("Entenda a arquitetura","Dinheiro em centavos, mutex e idempotência",Icons.Default.Code){go("details");selected=""};Text("Saldo, extrato e chaves de idempotência persistem no aparelho, separados por conta.")}
+  }
+ }
+}
+
+@Composable private fun WalletCard(cents:Long){
+ var revealed by rememberSaveable {mutableStateOf(true)}
+ Card(colors=CardDefaults.cardColors(containerColor=Brand,contentColor=androidx.compose.ui.graphics.Color.White),modifier=Modifier.fillMaxWidth()){
+  Column(Modifier.padding(24.dp),verticalArrangement=Arrangement.spacedBy(18.dp)){
+   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("BREDA / WALLET",style=MaterialTheme.typography.labelLarge);IconButton(onClick={revealed=!revealed}){Icon(if(revealed)Icons.Default.Visibility else Icons.Default.VisibilityOff,"Mostrar ou ocultar saldo")}}
+   Text(if(revealed)money(cents) else "••••••",style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Bold)
+   Text("Saldo fictício disponível")
+   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("••••  ••••  ••••  2048");Icon(Icons.Default.Contactless,null)}
   }
  }
 }

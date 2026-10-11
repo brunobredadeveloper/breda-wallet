@@ -1,5 +1,6 @@
 package dev.breda.wallet
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.breda.wallet.data.DemoWalletRepository
 import dev.breda.wallet.domain.*
@@ -9,8 +10,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class WalletViewModel : ViewModel() {
- private val repository = DemoWalletRepository()
+class WalletViewModel(app:Application) : AndroidViewModel(app) {
+ private val namespace=app.getSharedPreferences("portfolio-account",0).getString("namespace",sessionNamespace("local-demo"))!!
+ private val repository = DemoWalletRepository(storage=LocalWalletStorage(app.getSharedPreferences("wallet-$namespace",0)))
  val wallet = repository.wallet
  private val messageState = MutableStateFlow("")
  val message = messageState.asStateFlow()
@@ -29,7 +31,7 @@ class WalletViewModel : ViewModel() {
     TransferResult.InsufficientFunds -> "Saldo insuficiente."
     else -> "Não foi possível realizar a transferência."
    }
-   } finally {busyState.value=false}
+   } catch(e:kotlinx.coroutines.CancellationException){throw e} catch(_:Exception){messageState.value="Não foi possível salvar a transferência. Nenhum débito foi confirmado."} finally {busyState.value=false}
   }
  }
 }

@@ -12,6 +12,7 @@ sealed interface TransferResult {
  data object Success : TransferResult
  data object InsufficientFunds : TransferResult
  data object InvalidRequest : TransferResult
+ data object SessionCapacityReached : TransferResult
  data object IdempotencyConflict : TransferResult
 }
 interface WalletRepository {
