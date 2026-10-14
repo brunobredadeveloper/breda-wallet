@@ -1,46 +1,60 @@
 # Breda Wallet
 
-Versão 0.3: experiência Android com múltiplos fluxos, autenticação opcional e identidade visual própria. Pagamentos são fictícios.
+**Carteira digital de demonstração com consistência de saldo e transferências idempotentes.**
 
-## Identidade e experiência 0.3
+Projeto de **Bruno Breda · breda_dev**. Explorar uma jornada de carteira digital e demonstrar como proteger saldo e histórico diante de repetição de comandos e falhas de persistência.
 
-Ícone adaptativo compartilhado **breda_dev** nos quatro apps. Splash nativo Android seguido de abertura Lottie contextual por 3,2 segundos (no lançamento, sem repetir na rotação). Formulários com teclado adequado, mostrar/ocultar senha e navegação login/cadastro/recuperação. Estados de operação ocupam uma tela própria: preparação/processamento, sucesso e erro, com animações grandes e ações adequadas ao resultado. A demo deixa os estados rápidos visíveis; isso não altera o contrato do núcleo de pagamentos.
+**Plataforma:** Android nativo · Kotlin · Jetpack Compose  
+**Estado:** implementação de portfólio em evolução; esteira aprovada na execução referenciada.
 
-As esteiras incluem uma jornada instrumentada em emulador: splash, login, cadastro/recuperação, modo local, operação, sucesso/erro, histórico e saída. Também verificam que Lottie renderiza pixels e muda de frame. Capturas e relatórios ficam no artifact `*-ux-evidence`. As capturas usam frame fixo para comparação; as animações permanecem ativas nos APKs normais.
+[Fluxos e demonstração](docs/fluxos.md) · [Engenharia](docs/engenharia.md) · [Builds e evidências](docs/evidencias.md) · [Portfólio completo](https://github.com/brunobredadeveloper/breda-park-wash/blob/main/docs/portfolio-breda-dev.md)
 
-## Fluxos disponíveis
+## O que você pode avaliar
 
-Carteira azul clara: saldo, envio com revisão, comprovantes, busca no extrato, planejamento de metas e perfil.
+- Saldo fictício, envio com revisão e comprovante, extrato com busca e planejamento de metas.
+- Abertura com Lottie, login/cadastro/recuperação, modo local explícito e telas de processamento, sucesso e erro.
+- Ledger e memória de idempotência persistidos atomicamente; concorrência protegida por Mutex.
+- Separação dos dados locais por conta e autenticação Firebase opcional.
 
-## Engenharia demonstrada
+## Telas reais
 
-O ledger local e a memória de idempotência são salvos atomicamente antes de publicar um débito. Snapshot por conta, Mutex contra concorrência, valores em centavos, replay após reinício e falha de persistência testados. Limite de 1.000 requisições por ledger de demonstração, sem descartar chaves antigas. Metas são um exercício local de planejamento; não movimentam saldo.
+Capturas do aplicativo executado em emulador Android, recuperadas dos artefatos da esteira. Não são mockups nem fotografias de um aparelho físico. A origem e os limites estão em [evidências](docs/evidencias.md).
 
-| Aplicativo Firebase | Package Android |
-|---|---|
-| Breda Wallet | `dev.breda.wallet` |
+<img src="docs/imagens/03-home.png" alt="Breda Wallet — Painel inicial" width="260" />
+<img src="docs/imagens/05-success.png" alt="Breda Wallet — Resultado de sucesso" width="260" />
 
-## Autenticação Firebase
+## Fluxo principal
 
-1. Crie um projeto no Firebase Console e habilite **Authentication → Sign-in method → Email/Password**. Não é necessário habilitar login anônimo.
-2. Registre o aplicativo Android usando o package da tabela abaixo. Baixe seu `google-services.json`.
-3. No GitHub deste repositório, crie o secret de Actions **FIREBASE_CONFIG_JSON** com o JSON inteiro do aplicativo correspondente. O script CI valida o package e gera um asset de configuração; o arquivo pessoal não é versionado.
-4. Execute a esteira novamente para gerar um APK configurado. Para desenvolvimento local: `FIREBASE_CONFIG_JSON="$(cat /caminho/google-services.json)" python3 scripts/configure_firebase.py`.
-5. Crie conta no aplicativo, saia, entre novamente, envie recuperação de senha e verificação de e-mail. Firebase restaura a sessão. Senhas não são salvas pelo aplicativo.
+1. Abra o modo de demonstração local pela tela de acesso.
+2. Consulte o saldo e abra Enviar dinheiro.
+3. Informe um destinatário de teste e um valor em reais; revise e confirme.
+4. Confira o resultado e a operação no extrato.
+5. Tente um valor inválido ou acima do saldo e confirme a ausência de débito indevido.
 
-Sem configuração, o APK oferece **demonstração local** explicitamente identificada. Ela não autentica no Firebase. Autenticação real, entrega de e-mails e isolamento Firestore exigem validar com seu projeto. Os dados locais são separados pelo hash SHA-256 do UID; isso é organização por conta, não criptografia de dados em repouso. Firebase Auth identifica o usuário, mas não transforma simuladores de negócio em uma API de pagamentos autorizada.
+## Executar e validar
 
-## Experiência e animação
+JDK 17, Android SDK 35 e Android 8+ (API 26). Use o Gradle Wrapper versionado.
 
-Onboarding, splash, formulários de login/cadastro/recuperação, navegação com transições, feedback de carregamento/sucesso/erro via Lottie e perfil. As animações geométricas em `src/main/assets/motion_*.json` foram criadas para este projeto; não dependem de downloads em tempo de execução. Layout Compose com rolagem, estados vazios e componentes Material 3. Testes visuais e acessibilidade no aparelho ainda são necessários.
+```sh
+./gradlew :domain:test :data:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+```
 
-## Build e validação
+Configuração, Firebase quando aplicável, assinatura e comandos adicionais: [referência técnica](docs/referencia-tecnica.md).
 
-A esteira `.github/workflows/ci.yml` executa testes de domínio e/ou SDK, testes de isolamento de sessão, Android Lint e montagem de APK debug. Em **Actions → Tests and APK → Artifacts**, baixe o ZIP de APK e extraia o `.apk`. A chave debug é preservada por cache quando disponível; se o cache for perdido, poderá ser necessário desinstalar a versão anterior. Esse APK é para demonstração, sem publicação de release.
+[Abrir a execução verificada no GitHub Actions](https://github.com/brunobredadeveloper/breda-wallet/actions/runs/38172912981). A conclusão dessa execução é **success**; consulte os artefatos e a revisão de código em [evidências](docs/evidencias.md).
 
-Veja `docs/advanced-experience.md` para o roteiro manual. Testes automatizados de núcleo não substituem teste de navegação e integração Firebase em um celular.
+## Limites do produto
 
+Dinheiro fictício; sem conta bancária, Pix real ou integração com adquirente. Hash de UID organiza os arquivos, mas não os criptografa. O ledger de demonstração tem limite de 1.000 requisições, sem descarte de chaves antigas.
 
-## Clean Code, MVVM e SOLID
+## Para quem revisa o portfólio
 
-ViewModels recebem ports por construtor e a UI observa estados. Casos de uso, adapters e injeção manual estão descritos em [Arquitetura e decisões](docs/architecture.md), com os contratos e os testes correspondentes.
+Recrutadores e equipes mobile que avaliam engenharia de aplicações financeiras. As [decisões de engenharia](docs/engenharia.md) conectam responsabilidades, arquivos e testes. O [roteiro funcional](docs/fluxos.md) ajuda a avaliar comportamento, falhas e preservação de dados. Funcionalidade planejada não é apresentada como implementada.
+
+## Próximos passos
+
+- Validar os percursos no dispositivo real e registrar os resultados.
+- Revisar acessibilidade, interrupções e falhas de armazenamento/rede aplicáveis.
+- Concluir requisitos de distribuição, suporte e segurança antes de uso comercial.
+
+Código, mídias e dependências mantêm seus respectivos termos. Consulte os créditos e os avisos existentes no repositório.
